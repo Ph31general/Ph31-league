@@ -104,7 +104,12 @@ function uploadQuiz(){
 
   const quizId = course+"_"+date;
   db.collection("quizzes").doc(quizId).set({ course_id: course, date: date, questions })
-    .then(()=>{ alert("Quiz uploaded successfully!"); document.getElementById('questionsContainer').innerHTML=''; questionCount=0; loadExistingQuizzes(); })
+    .then(()=>{ 
+      alert("Quiz uploaded successfully!"); 
+      document.getElementById('questionsContainer').innerHTML=''; 
+      questionCount=0; 
+      loadExistingQuizzes();
+    })
     .catch(err=>{ console.error(err); alert("Error uploading quiz."); });
 }
 
@@ -135,7 +140,7 @@ function loadExistingQuizzes(){
 }
 
 // Load quizzes on page load
-loadExistingQuizzes();
+window.onload = loadExistingQuizzes;
 </script>
 
 </body>
