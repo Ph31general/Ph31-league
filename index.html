@@ -10,21 +10,21 @@ body { font-family:'Poppins', sans-serif; background:#f0f4f8; margin:0; padding:
 header { background:#4cd964; color:white; padding:20px; text-align:center; font-size:28px; font-weight:700; }
 .container { max-width:900px; margin:30px auto; padding:20px; background:white; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
 input, select, textarea { width:100%; padding:12px; margin:8px 0 15px 0; border-radius:10px; border:1px solid #ccc; font-size:16px; }
-button { padding:12px 20px; border:none; border-radius:12px; background:#4cd964; color:white; font-weight:600; cursor:pointer; transition:0.3s; margin:5px 0; }
+button { padding:12px 20px; border:none; border-radius:12px; background:#4cd964; color:white; font-weight:600; cursor:pointer; transition:0.3s; margin-right:10px; }
 button:hover { background:#45c857; }
-button.delete-btn { background:#e84118; }
-button.delete-btn:hover { background:#c73814; }
 .question-block { border:1px solid #ddd; padding:15px; margin-bottom:15px; border-radius:12px; }
 .option-input { width:100%; margin:5px 0; padding:10px; border-radius:8px; border:1px solid #ccc; }
-.quiz-item { border:1px solid #ddd; padding:12px; margin:10px 0; border-radius:12px; display:flex; justify-content:space-between; align-items:center; }
+.quiz-card { border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:12px; background:#fafafa; display:flex; justify-content:space-between; align-items:center; }
+.delete-btn { background:#e84118; }
+.delete-btn:hover { background:#c73814; }
 </style>
 </head>
 <body>
 
 <header>Ph31 League - Admin Panel</header>
 <div class="container">
-  <h2>Upload Quiz for a Course</h2>
 
+  <h2>Upload Quiz for a Course</h2>
   <label for="courseSelect">Select Course:</label>
   <select id="courseSelect">
     <option value="">-- Select Course --</option>
@@ -39,11 +39,12 @@ button.delete-btn:hover { background:#c73814; }
   <input type="date" id="quizDate">
 
   <div id="questionsContainer"></div>
-  <button onclick="addQuestion()">Add Question</button>
-  <button onclick="uploadQuiz()" style="background:#2f80ed;">Upload Quiz</button>
+  <button id="addQuestionBtn">Add Question</button>
+  <button id="uploadQuizBtn" style="background:#2f80ed;">Upload Quiz</button>
 
-  <h2 style="margin-top:40px;">Existing Quizzes</h2>
-  <div id="existingQuizzes"></div>
+  <hr style="margin:30px 0;">
+  <h2>Existing Quizzes</h2>
+  <div id="quizListContainer"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -65,6 +66,7 @@ const db = firebase.firestore();
 
 let questionCount = 0;
 
+// Add Question
 function addQuestion(){
   questionCount++;
   const container = document.getElementById("questionsContainer");
@@ -81,10 +83,14 @@ function addQuestion(){
     <input type="text" placeholder="Option D" class="option-input">
     <label>Correct Answer (exact text):</label>
     <input type="text" placeholder="Correct Answer" class="correct-answer">
+    <button class="delete-btn">Delete Question</button>
   `;
   container.appendChild(div);
+
+  div.querySelector('.delete-btn').addEventListener('click', ()=>{ div.remove(); });
 }
 
+// Upload Quiz
 function uploadQuiz(){
   const course = document.getElementById('courseSelect').value;
   const date = document.getElementById('quizDate').value;
@@ -104,43 +110,48 @@ function uploadQuiz(){
 
   const quizId = course+"_"+date;
   db.collection("quizzes").doc(quizId).set({ course_id: course, date: date, questions })
-    .then(()=>{ 
-      alert("Quiz uploaded successfully!"); 
-      document.getElementById('questionsContainer').innerHTML=''; 
-      questionCount=0; 
-      loadExistingQuizzes();
+    .then(()=>{
+      alert("Quiz uploaded successfully!");
+      document.getElementById('questionsContainer').innerHTML='';
+      questionCount=0;
+      loadQuizzes(); // Refresh quiz list
     })
     .catch(err=>{ console.error(err); alert("Error uploading quiz."); });
 }
 
-function loadExistingQuizzes(){
-  const container = document.getElementById('existingQuizzes');
-  container.innerHTML='';
+// Load existing quizzes
+function loadQuizzes(){
+  const container = document.getElementById("quizListContainer");
+  container.innerHTML = "";
   db.collection("quizzes").get().then(snapshot=>{
     snapshot.forEach(doc=>{
       const data = doc.data();
       const div = document.createElement('div');
-      div.className = 'quiz-item';
-      div.innerHTML = <span>${data.course_id} - ${data.date}</span>;
-      const delBtn = document.createElement('button');
-      delBtn.className = 'delete-btn';
-      delBtn.innerText = 'Delete Quiz';
-      delBtn.onclick = ()=>{
+      div.className = 'quiz-card';
+      div.innerHTML = `
+        <span><strong>${data.course_id}</strong> - ${data.date} (${data.questions.length} questions)</span>
+        <button class="delete-btn">Delete Quiz</button>
+      `;
+      container.appendChild(div);
+
+      div.querySelector('.delete-btn').addEventListener('click', ()=>{
         if(confirm("Are you sure you want to delete this quiz?")){
           db.collection("quizzes").doc(doc.id).delete().then(()=>{
-            div.remove();
             alert("Quiz deleted successfully!");
-          });
+            div.remove();
+          }).catch(err=>{ console.error(err); alert("Error deleting quiz"); });
         }
-      };
-      div.appendChild(delBtn);
-      container.appendChild(div);
+      });
     });
   });
 }
 
-// Load quizzes on page load
-window.onload = loadExistingQuizzes;
+// Initialize
+window.onload = () => {
+  document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+  document.getElementById('uploadQuizBtn').addEventListener('click', uploadQuiz);
+  loadQuizzes();
+}
 </script>
 
 </body>
